@@ -61,6 +61,43 @@ CREATE TABLE [functional].[taskTag] (
 GO
 
 /**
+ * @table category Task category management
+ * @multitenancy true
+ * @softDelete true
+ * @alias cat
+ */
+CREATE TABLE [functional].[category] (
+  [idCategory] INTEGER IDENTITY(1, 1) NOT NULL,
+  [idAccount] INTEGER NOT NULL,
+  [idUser] INTEGER NOT NULL,
+  [name] NVARCHAR(50) NOT NULL,
+  [color] VARCHAR(7) NOT NULL,
+  [icon] NVARCHAR(50) NULL,
+  [idParent] INTEGER NULL,
+  [node] HIERARCHYID NULL,
+  [level] AS [node].GetLevel(),
+  [isDefault] BIT NOT NULL,
+  [dateCreated] DATETIME2 NOT NULL,
+  [dateModified] DATETIME2 NOT NULL,
+  [deleted] BIT NOT NULL DEFAULT (0)
+);
+GO
+
+/**
+ * @table taskCategory Task to category association
+ * @multitenancy true
+ * @softDelete false
+ * @alias tskCat
+ */
+CREATE TABLE [functional].[taskCategory] (
+  [idAccount] INTEGER NOT NULL,
+  [idTask] INTEGER NOT NULL,
+  [idCategory] INTEGER NOT NULL,
+  [dateCreated] DATETIME2 NOT NULL
+);
+GO
+
+/**
  * @primaryKey pkTask
  * @keyType Object
  */
@@ -82,6 +119,22 @@ GO
  */
 ALTER TABLE [functional].[taskTag]
 ADD CONSTRAINT [pkTaskTag] PRIMARY KEY CLUSTERED ([idAccount], [idTask], [tag]);
+GO
+
+/**
+ * @primaryKey pkCategory
+ * @keyType Object
+ */
+ALTER TABLE [functional].[category]
+ADD CONSTRAINT [pkCategory] PRIMARY KEY CLUSTERED ([idCategory]);
+GO
+
+/**
+ * @primaryKey pkTaskCategory
+ * @keyType Relationship
+ */
+ALTER TABLE [functional].[taskCategory]
+ADD CONSTRAINT [pkTaskCategory] PRIMARY KEY CLUSTERED ([idAccount], [idTask], [idCategory]);
 GO
 
 /**
@@ -139,6 +192,62 @@ GO
 ALTER TABLE [functional].[taskTag]
 ADD CONSTRAINT [fkTaskTag_Task] FOREIGN KEY ([idTask])
 REFERENCES [functional].[task]([idTask]);
+GO
+
+/**
+ * @foreignKey fkCategory_Account Multi-tenancy isolation
+ * @target subscription.account
+ * @tenancy true
+ */
+ALTER TABLE [functional].[category]
+ADD CONSTRAINT [fkCategory_Account] FOREIGN KEY ([idAccount])
+REFERENCES [subscription].[account]([idAccount]);
+GO
+
+/**
+ * @foreignKey fkCategory_User Category creator reference
+ * @target security.user
+ */
+ALTER TABLE [functional].[category]
+ADD CONSTRAINT [fkCategory_User] FOREIGN KEY ([idUser])
+REFERENCES [security].[user]([idUser]);
+GO
+
+/**
+ * @foreignKey fkCategory_Parent Parent category reference
+ * @target functional.category
+ */
+ALTER TABLE [functional].[category]
+ADD CONSTRAINT [fkCategory_Parent] FOREIGN KEY ([idParent])
+REFERENCES [functional].[category]([idCategory]);
+GO
+
+/**
+ * @foreignKey fkTaskCategory_Account Multi-tenancy isolation
+ * @target subscription.account
+ * @tenancy true
+ */
+ALTER TABLE [functional].[taskCategory]
+ADD CONSTRAINT [fkTaskCategory_Account] FOREIGN KEY ([idAccount])
+REFERENCES [subscription].[account]([idAccount]);
+GO
+
+/**
+ * @foreignKey fkTaskCategory_Task Task reference
+ * @target functional.task
+ */
+ALTER TABLE [functional].[taskCategory]
+ADD CONSTRAINT [fkTaskCategory_Task] FOREIGN KEY ([idTask])
+REFERENCES [functional].[task]([idTask]);
+GO
+
+/**
+ * @foreignKey fkTaskCategory_Category Category reference
+ * @target functional.category
+ */
+ALTER TABLE [functional].[taskCategory]
+ADD CONSTRAINT [fkTaskCategory_Category] FOREIGN KEY ([idCategory])
+REFERENCES [functional].[category]([idCategory]);
 GO
 
 /**
@@ -209,6 +318,41 @@ GO
  */
 ALTER TABLE [functional].[taskTag]
 ADD CONSTRAINT [dfTaskTag_DateCreated] DEFAULT (GETUTCDATE()) FOR [dateCreated];
+GO
+
+/**
+ * @default dfCategory_Color Default blue color
+ */
+ALTER TABLE [functional].[category]
+ADD CONSTRAINT [dfCategory_Color] DEFAULT ('#3498db') FOR [color];
+GO
+
+/**
+ * @default dfCategory_IsDefault Default false for custom categories
+ */
+ALTER TABLE [functional].[category]
+ADD CONSTRAINT [dfCategory_IsDefault] DEFAULT (0) FOR [isDefault];
+GO
+
+/**
+ * @default dfCategory_DateCreated Auto-set creation timestamp
+ */
+ALTER TABLE [functional].[category]
+ADD CONSTRAINT [dfCategory_DateCreated] DEFAULT (GETUTCDATE()) FOR [dateCreated];
+GO
+
+/**
+ * @default dfCategory_DateModified Auto-set modification timestamp
+ */
+ALTER TABLE [functional].[category]
+ADD CONSTRAINT [dfCategory_DateModified] DEFAULT (GETUTCDATE()) FOR [dateModified];
+GO
+
+/**
+ * @default dfTaskCategory_DateCreated Auto-set creation timestamp
+ */
+ALTER TABLE [functional].[taskCategory]
+ADD CONSTRAINT [dfTaskCategory_DateCreated] DEFAULT (GETUTCDATE()) FOR [dateCreated];
 GO
 
 /**
@@ -290,4 +434,76 @@ GO
  */
 CREATE NONCLUSTERED INDEX [ixTaskTag_Account_Tag]
 ON [functional].[taskTag]([idAccount], [tag]);
+GO
+
+/**
+ * @index ixCategory_Account Multi-tenancy filtering
+ * @type ForeignKey
+ */
+CREATE NONCLUSTERED INDEX [ixCategory_Account]
+ON [functional].[category]([idAccount])
+WHERE [deleted] = 0;
+GO
+
+/**
+ * @index ixCategory_Account_User User category filtering
+ * @type Search
+ */
+CREATE NONCLUSTERED INDEX [ixCategory_Account_User]
+ON [functional].[category]([idAccount], [idUser])
+INCLUDE ([name], [color], [icon])
+WHERE [deleted] = 0;
+GO
+
+/**
+ * @index ixCategory_Account_Parent Hierarchy navigation
+ * @type Search
+ */
+CREATE NONCLUSTERED INDEX [ixCategory_Account_Parent]
+ON [functional].[category]([idAccount], [idParent])
+INCLUDE ([name], [level])
+WHERE [deleted] = 0;
+GO
+
+/**
+ * @index ixCategory_Account_Node Hierarchical queries
+ * @type Performance
+ */
+CREATE NONCLUSTERED INDEX [ixCategory_Account_Node]
+ON [functional].[category]([idAccount], [node])
+WHERE [deleted] = 0;
+GO
+
+/**
+ * @index uqCategory_Account_Name Unique category name per account
+ * @type Search
+ * @unique true
+ */
+CREATE UNIQUE NONCLUSTERED INDEX [uqCategory_Account_Name]
+ON [functional].[category]([idAccount], [name])
+WHERE [deleted] = 0;
+GO
+
+/**
+ * @index ixTaskCategory_Account Multi-tenancy filtering
+ * @type ForeignKey
+ */
+CREATE NONCLUSTERED INDEX [ixTaskCategory_Account]
+ON [functional].[taskCategory]([idAccount]);
+GO
+
+/**
+ * @index ixTaskCategory_Account_Category Category task lookup
+ * @type Search
+ */
+CREATE NONCLUSTERED INDEX [ixTaskCategory_Account_Category]
+ON [functional].[taskCategory]([idAccount], [idCategory]);
+GO
+
+/**
+ * @index ixTaskCategory_Account_Task Task category lookup
+ * @type Search
+ */
+CREATE NONCLUSTERED INDEX [ixTaskCategory_Account_Task]
+ON [functional].[taskCategory]([idAccount], [idTask]);
 GO

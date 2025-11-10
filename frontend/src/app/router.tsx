@@ -5,6 +5,7 @@ import { LoadingSpinner } from '@/core/components/LoadingSpinner';
 
 const HomePage = lazy(() => import('@/pages/Home'));
 const TaskCreatePage = lazy(() => import('@/pages/TaskCreate'));
+const CategoryManagementPage = lazy(() => import('@/pages/CategoryManagement'));
 const NotFoundPage = lazy(() => import('@/pages/NotFound'));
 
 export const router = createBrowserRouter([
@@ -25,6 +26,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingSpinner />}>
             <TaskCreatePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'categories',
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <CategoryManagementPage />
           </Suspense>
         ),
       },
