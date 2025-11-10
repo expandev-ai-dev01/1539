@@ -1,0 +1,21 @@
+export const ERROR_CODES = {
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+  NOT_FOUND: 'NOT_FOUND',
+  CONFLICT: 'CONFLICT',
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+  DATABASE_ERROR: 'DATABASE_ERROR',
+  BUSINESS_RULE_ERROR: 'BUSINESS_RULE_ERROR',
+} as const;
+
+export const ERROR_MESSAGES = {
+  VALIDATION_FAILED: 'Validation failed',
+  UNAUTHORIZED_ACCESS: 'Unauthorized access',
+  FORBIDDEN_RESOURCE: 'Forbidden resource',
+  RESOURCE_NOT_FOUND: 'Resource not found',
+  DUPLICATE_RESOURCE: 'Duplicate resource',
+  INTERNAL_ERROR: 'Internal server error',
+  DATABASE_CONNECTION_FAILED: 'Database connection failed',
+  BUSINESS_RULE_VIOLATION: 'Business rule violation',
+} as const;
