@@ -1,8 +1,9 @@
 import { Router } from 'express';
+import * as taskController from '@/api/v1/internal/task/controller';
 
 const router = Router();
 
-// Internal authenticated routes will be added here
-// Example: router.use('/task', taskRoutes);
+// Task routes
+router.post('/task', taskController.postHandler);
 
 export default router;
